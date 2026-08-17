@@ -7,10 +7,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  createdAt   DateTime @default(now())
+
+  ownedWorkspaces Workspace[]
+  memberships     WorkspaceMember[]
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  ownerId String
+  owner   User @relation(fields: [ownerId], references: [id])
+
+  members WorkspaceMember[]
+}
+
+model WorkspaceMember {
+  id String @id @default(cuid())
+
+  workspaceId String
+  userId String
+
+  role WorkspaceRole @default(MEMBER)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
 }
