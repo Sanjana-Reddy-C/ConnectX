@@ -42,7 +42,12 @@ function Dashboard() {
             <h2 className="text-4xl font-bold">
               Welcome to ConnectX 
             </h2>
-
+            <button
+              onClick={() => navigate("/video-call")}
+              className="mt-8 rounded-xl bg-cyan-500 px-8 py-4 font-semibold text-white transition hover:bg-cyan-600"
+            >
+              Start Video Call
+            </button>
             <p className="mt-4 text-slate-400">
               Select a workspace to start collaborating.
             </p>

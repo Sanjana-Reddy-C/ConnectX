@@ -10,16 +10,21 @@ function VideoCall() {
 
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const socketRef = useRef<Socket | null>(null);
+
   const peerConnectionRef =
     useRef<RTCPeerConnection | null>(null);
 
   const localStreamRef =
+    useRef<MediaStream | null>(null);
+
+  const screenStreamRef =
     useRef<MediaStream | null>(null);
 
   const remotePeerIdRef =
@@ -353,10 +358,107 @@ function VideoCall() {
     );
   };
 
+  const startScreenShare = async () => {
+    if (!peerConnectionRef.current) {
+      return;
+    }
+
+    try {
+      const screenStream =
+        await navigator.mediaDevices.getDisplayMedia(
+          {
+            video: true,
+          }
+        );
+
+      screenStreamRef.current =
+        screenStream;
+
+      const screenTrack =
+        screenStream.getVideoTracks()[0];
+
+      const sender =
+        peerConnectionRef.current
+          .getSenders()
+          .find(
+            (sender) =>
+              sender.track?.kind ===
+              "video"
+          );
+
+      if (sender) {
+        await sender.replaceTrack(
+          screenTrack
+        );
+      }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject =
+          screenStream;
+      }
+
+      setIsScreenSharing(true);
+
+      screenTrack.onended = async () => {
+        await stopScreenShare();
+      };
+    } catch (error) {
+      console.error(
+        "Screen sharing error:",
+        error
+      );
+    }
+  };
+
+  const stopScreenShare = async () => {
+    const cameraStream =
+      localStreamRef.current;
+
+    if (!cameraStream) return;
+
+    const cameraTrack =
+      cameraStream.getVideoTracks()[0];
+
+    const sender =
+      peerConnectionRef.current
+        ?.getSenders()
+        .find(
+          (sender) =>
+            sender.track?.kind ===
+            "video"
+        );
+
+    if (sender && cameraTrack) {
+      await sender.replaceTrack(
+        cameraTrack
+      );
+    }
+
+    screenStreamRef.current
+      ?.getTracks()
+      .forEach((track) =>
+        track.stop()
+      );
+
+    screenStreamRef.current =
+      null;
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject =
+        cameraStream;
+    }
+
+    setIsScreenSharing(false);
+  };
+
   const cleanupCall = () => {
     socketRef.current?.disconnect();
 
     localStreamRef.current
+      ?.getTracks()
+      .forEach((track) => track.stop());
+
+    screenStreamRef.current
       ?.getTracks()
       .forEach((track) => track.stop());
 
@@ -380,11 +482,13 @@ function VideoCall() {
     socketRef.current = null;
     peerConnectionRef.current = null;
     localStreamRef.current = null;
+    screenStreamRef.current = null;
 
     setJoined(false);
     setCallDuration(0);
     setIsMuted(false);
     setIsCameraOff(false);
+    setIsScreenSharing(false);
   };
 
   const leaveCall = () => {
@@ -496,8 +600,8 @@ function VideoCall() {
               }`}
             >
               {isMuted
-                ? " Unmute"
-                : " Mute"}
+                ? "🔇 Unmute"
+                : "🎤 Mute"}
             </button>
 
             <button
@@ -509,15 +613,31 @@ function VideoCall() {
               }`}
             >
               {isCameraOff
-                ? " Camera On"
-                : " Camera Off"}
+                ? "📹 Camera On"
+                : "📹 Camera Off"}
             </button>
+
+            {!isScreenSharing ? (
+              <button
+                onClick={startScreenShare}
+                className="rounded-lg bg-slate-800 px-6 py-3 font-semibold hover:bg-slate-700"
+              >
+                🖥️ Share Screen
+              </button>
+            ) : (
+              <button
+                onClick={stopScreenShare}
+                className="rounded-lg bg-cyan-500 px-6 py-3 font-semibold hover:bg-cyan-600"
+              >
+                🛑 Stop Sharing
+              </button>
+            )}
 
             <button
               onClick={leaveCall}
               className="rounded-lg bg-red-500 px-8 py-3 font-semibold hover:bg-red-600"
             >
-              Leave Call
+              📞 Leave Call
             </button>
 
           </div>
