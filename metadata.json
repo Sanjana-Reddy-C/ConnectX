@@ -1,0 +1,6 @@
+{
+  "name": "ConnectX",
+  "description": "Web-based Enterprise Communication and Collaboration Platform with real-time messaging, WebRTC voice and video calling, and shared workspaces.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

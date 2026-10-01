@@ -1,0 +1,288 @@
+{
+  "users": [
+    {
+      "id": "usr-1789628811502-cfd8",
+      "email": "elena@connectx.corp",
+      "name": "Elena Rostova (London, UK)",
+      "passwordHash": "$2b$10$nswS2HUpkmOtnb2Qj.3yo.EDgCRnDCYCelHHbjJCBX64aiXZGrmi.",
+      "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Elena%20Rostova%20(London%2C%20UK)",
+      "status": "offline",
+      "lastSeen": "2026-09-22T07:59:15.058Z",
+      "createdAt": "2026-09-17T07:06:51.502Z"
+    },
+    {
+      "id": "usr-1790058740767-h4bd",
+      "email": "sam@gmail.com",
+      "name": "Sam",
+      "passwordHash": "$2b$10$JmO/cygUir89TvLF7YHt1eRPtcWG8a/n7DxE.cxRtUwcFA6f3Z/Mq",
+      "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Sam",
+      "status": "offline",
+      "lastSeen": "2026-09-22T07:58:25.075Z",
+      "createdAt": "2026-09-22T06:32:20.767Z"
+    },
+    {
+      "id": "usr-1790058865338-icbk",
+      "email": "kenji@connectx.corp",
+      "name": "Kenji Sato (Tokyo, JP)",
+      "passwordHash": "$2b$10$7v0xFKtFHAGkC3rUp3NzKu6cpmMUwnbGYdIkDn5S3B3dpExl4BtL.",
+      "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Kenji%20Sato%20(Tokyo%2C%20JP)",
+      "status": "online",
+      "lastSeen": "2026-09-22T06:59:40.369Z",
+      "createdAt": "2026-09-22T06:34:25.339Z"
+    },
+    {
+      "id": "user-1790065491227-69v7sq",
+      "email": "alex@gmail.com",
+      "name": "Alex",
+      "phoneNumber": "+919876543210",
+      "passwordHash": "$2b$10$2lPCT7Dfr/i.mWMLj8ewVeDSFHZCFkiO7whIBdR/LQgybTos853l.",
+      "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Alex",
+      "status": "online",
+      "lastSeen": "2026-09-22T08:24:51.371Z",
+      "createdAt": "2026-09-22T08:24:51.227Z"
+    }
+  ],
+  "workspaces": [
+    {
+      "id": "ws-global-enterprise",
+      "name": "ConnectX Global Enterprise",
+      "description": "Primary cross-border collaboration hub for engineering and product teams",
+      "inviteCode": "CONNECTX-GLOBAL",
+      "ownerId": "user-demo-1",
+      "createdAt": "2026-09-17T07:02:32.120Z",
+      "channels": [
+        {
+          "id": "ch-general",
+          "name": "general",
+          "workspaceId": "ws-global-enterprise",
+          "isPrivate": false,
+          "createdAt": "2026-09-17T07:02:32.120Z"
+        },
+        {
+          "id": "ch-announcements",
+          "name": "announcements",
+          "workspaceId": "ws-global-enterprise",
+          "isPrivate": false,
+          "createdAt": "2026-09-17T07:02:32.120Z"
+        },
+        {
+          "id": "ch-voice-video-room",
+          "name": "conference-room-1",
+          "workspaceId": "ws-global-enterprise",
+          "isPrivate": false,
+          "createdAt": "2026-09-17T07:02:32.120Z"
+        }
+      ]
+    }
+  ],
+  "members": [
+    {
+      "id": "mem-1789628811502-lxkg",
+      "userId": "usr-1789628811502-cfd8",
+      "workspaceId": "ws-global-enterprise",
+      "role": "OWNER",
+      "joinedAt": "2026-09-17T07:06:51.502Z"
+    },
+    {
+      "id": "mem-1790058740767-7j83",
+      "userId": "usr-1790058740767-h4bd",
+      "workspaceId": "ws-global-enterprise",
+      "role": "MEMBER",
+      "joinedAt": "2026-09-22T06:32:20.767Z"
+    },
+    {
+      "id": "mem-1790058865339-yup4",
+      "userId": "usr-1790058865338-icbk",
+      "workspaceId": "ws-global-enterprise",
+      "role": "MEMBER",
+      "joinedAt": "2026-09-22T06:34:25.339Z"
+    },
+    {
+      "id": "member-1790065491227-ipww9",
+      "userId": "user-1790065491227-69v7sq",
+      "workspaceId": "ws-global-enterprise",
+      "role": "MEMBER",
+      "joinedAt": "2026-09-22T08:24:51.227Z"
+    }
+  ],
+  "messages": [
+    {
+      "content": "Hello",
+      "senderId": "usr-1789628811502-cfd8",
+      "senderName": "Elena Rostova (London, UK)",
+      "channelId": "ch-voice-video-room",
+      "workspaceId": "ws-global-enterprise",
+      "id": "msg-1789628876187-ox2x",
+      "isRead": false,
+      "createdAt": "2026-09-17T07:07:56.187Z"
+    },
+    {
+      "content": "hello elena",
+      "senderId": "usr-1789628811502-cfd8",
+      "senderName": "Elena Rostova (London, UK)",
+      "recipientId": "usr-1790058740767-h4bd",
+      "id": "msg-1790063840973-9vvi",
+      "isRead": false,
+      "createdAt": "2026-09-22T07:57:20.973Z"
+    }
+  ],
+  "callLogs": [
+    {
+      "initiatorId": "usr-1790058740767-h4bd",
+      "initiatorName": "Sam",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058740767-h4bd",
+      "type": "VOICE",
+      "status": "COMPLETED",
+      "duration": 18,
+      "startedAt": "2026-09-22T07:58:15.915Z",
+      "endedAt": "2026-09-22T07:58:15.915Z",
+      "participants": [
+        "Elena Rostova (London, UK)"
+      ],
+      "id": "call-1790063895915-7of2"
+    },
+    {
+      "initiatorId": "usr-1790058740767-h4bd",
+      "initiatorName": "Sam",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058740767-h4bd",
+      "type": "VOICE",
+      "status": "COMPLETED",
+      "duration": 21,
+      "startedAt": "2026-09-22T07:58:12.025Z",
+      "endedAt": "2026-09-22T07:58:12.025Z",
+      "participants": [
+        "Sam",
+        "Elena Rostova (London, UK)"
+      ],
+      "id": "call-1790063892025-1tnm"
+    },
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058740767-h4bd",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 166,
+      "startedAt": "2026-09-22T07:16:32.380Z",
+      "endedAt": "2026-09-22T07:16:32.380Z",
+      "participants": [
+        "Sam"
+      ],
+      "id": "call-1790061392380-dlgo"
+    },
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058740767-h4bd",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 172,
+      "startedAt": "2026-09-22T07:16:29.734Z",
+      "endedAt": "2026-09-22T07:16:29.734Z",
+      "participants": [
+        "Elena Rostova (London, UK)",
+        "Sam"
+      ],
+      "id": "call-1790061389734-t0hc"
+    },
+    {
+      "initiatorId": "usr-1790058740767-h4bd",
+      "initiatorName": "Sam",
+      "roomId": "cx-p2p-usr-1790058740767-h4bd-usr-1790058865338-icbk",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 99,
+      "startedAt": "2026-09-22T07:02:10.330Z",
+      "endedAt": "2026-09-22T07:02:10.330Z",
+      "participants": [
+        "Kenji Sato (Tokyo, JP)"
+      ],
+      "id": "call-1790060530330-p3w9"
+    },
+    {
+      "initiatorId": "usr-1790058740767-h4bd",
+      "initiatorName": "Sam",
+      "roomId": "cx-p2p-usr-1790058740767-h4bd-usr-1790058865338-icbk",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 101,
+      "startedAt": "2026-09-22T07:02:07.073Z",
+      "endedAt": "2026-09-22T07:02:07.073Z",
+      "participants": [
+        "Sam",
+        "Kenji Sato (Tokyo, JP)"
+      ],
+      "id": "call-1790060527073-9oaq"
+    },
+    {
+      "initiatorId": "usr-1790058740767-h4bd",
+      "initiatorName": "Sam",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058740767-h4bd",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 15,
+      "startedAt": "2026-09-22T07:00:22.596Z",
+      "endedAt": "2026-09-22T07:00:22.596Z",
+      "participants": [
+        "Sam"
+      ],
+      "id": "call-1790060422596-7pbm"
+    },
+    {
+      "initiatorId": "usr-1790058865338-icbk",
+      "initiatorName": "Kenji Sato (Tokyo, JP)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058740767-h4bd",
+      "type": "VOICE",
+      "status": "COMPLETED",
+      "duration": 148,
+      "startedAt": "2026-09-22T06:36:08.517Z",
+      "endedAt": "2026-09-22T06:36:08.517Z",
+      "participants": [
+        "Sam"
+      ],
+      "id": "call-1790058968517-wt1k"
+    },
+    {
+      "initiatorId": "usr-1790058865338-icbk",
+      "initiatorName": "Kenji Sato (Tokyo, JP)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058865338-icbk",
+      "type": "VOICE",
+      "status": "COMPLETED",
+      "duration": 96,
+      "startedAt": "2026-09-22T06:36:06.231Z",
+      "endedAt": "2026-09-22T06:36:06.231Z",
+      "participants": [
+        "Kenji Sato (Tokyo, JP)"
+      ],
+      "id": "call-1790058966231-426t"
+    },
+    {
+      "initiatorId": "usr-1790058865338-icbk",
+      "initiatorName": "Kenji Sato (Tokyo, JP)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058865338-icbk",
+      "type": "VOICE",
+      "status": "COMPLETED",
+      "duration": 138,
+      "startedAt": "2026-09-22T06:36:03.733Z",
+      "endedAt": "2026-09-22T06:36:03.733Z",
+      "participants": [
+        "Elena Rostova (London, UK)"
+      ],
+      "id": "call-1790058963733-dpdf"
+    },
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-enterprise-conference-room-1",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 19,
+      "startedAt": "2026-09-17T07:07:27.093Z",
+      "endedAt": "2026-09-17T07:07:27.093Z",
+      "participants": [
+        "Elena Rostova (London, UK)"
+      ],
+      "id": "call-1789628847093-hp19"
+    }
+  ]
+}
