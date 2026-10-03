@@ -2,7 +2,7 @@ import {
   Server as SocketIOServer,
   Socket,
 } from 'socket.io';
-import { Server } from 'socket.io';
+
 import { callRegistry } from '../services/callRegistry.js';
 import { db } from '../services/db.js';
 
@@ -47,112 +47,133 @@ export function setupSocketSignaling(
     (socket: Socket) => {
       console.log(
         `[Socket.IO] Client connected: ${socket.id}`
-          const userId =socket.handshake.auth?.userId || socket.handshake.query?.userId;
-
-  if (userId) {
-    const normalizedUserId =
-      String(userId);
-
-    callRegistry.registerSocket(
-      normalizedUserId,
-      socket.id
-    );
-
-    socket.data.userId =
-      normalizedUserId;
-  }
       );
+
+      // --------------------------------------------------------
+      // Recover userId from socket authentication if available
+      // --------------------------------------------------------
+
+      const userId =
+        socket.handshake.auth?.userId ||
+        socket.handshake.query?.userId;
+
+      if (userId) {
+        const normalizedUserId =
+          String(userId);
+
+        socket.data.userId =
+          normalizedUserId;
+      }
 
       // ========================================================
       // REGISTER USER
       // ========================================================
 
-      Socket.on(
+      socket.on(
         'register-user',
         async (userData: {
           id: string;
           name: string;
           avatarUrl?: string;
         }) => {
-          const previousUser =
-            connectedSockets.get(
-              socket.id
-            );
-
-          // If this socket was previously registered
-          // as another user, remove the old mapping.
-          if (
-            previousUser &&
-            previousUser.userId !==
-              userData.id
-          ) {
-            const previousSockets =
-              userSocketMap.get(
-                previousUser.userId
-              );
-
-            if (previousSockets) {
-              previousSockets.delete(
+          try {
+            const previousUser =
+              connectedSockets.get(
                 socket.id
               );
 
-              if (
-                previousSockets.size === 0
-              ) {
-                userSocketMap.delete(
+            // If this socket was previously registered
+            // as another user, remove the old mapping.
+            if (
+              previousUser &&
+              previousUser.userId !==
+                userData.id
+            ) {
+              const previousSockets =
+                userSocketMap.get(
                   previousUser.userId
                 );
+
+              if (previousSockets) {
+                previousSockets.delete(
+                  socket.id
+                );
+
+                if (
+                  previousSockets.size === 0
+                ) {
+                  userSocketMap.delete(
+                    previousUser.userId
+                  );
+                }
               }
+
+              callRegistry.unregisterUser(
+                previousUser.userId
+              );
             }
-          }
 
-          const user: ConnectedUser = {
-            socketId: socket.id,
-            userId: userData.id,
-            name: userData.name,
-            avatarUrl:
-              userData.avatarUrl,
-            roomId:
-              previousUser?.roomId,
-          };
+            const user: ConnectedUser = {
+              socketId: socket.id,
+              userId: userData.id,
+              name: userData.name,
+              avatarUrl:
+                userData.avatarUrl,
+              roomId:
+                previousUser?.roomId,
+            };
 
-          connectedSockets.set(
-            socket.id,
-            user
-          );
+            connectedSockets.set(
+              socket.id,
+              user
+            );
 
-          if (
-            !userSocketMap.has(
-              userData.id
-            )
-          ) {
-            userSocketMap.set(
+            if (
+              !userSocketMap.has(
+                userData.id
+              )
+            ) {
+              userSocketMap.set(
+                userData.id,
+                new Set()
+              );
+            }
+
+            userSocketMap
+              .get(userData.id)!
+              .add(socket.id);
+
+            callRegistry.registerUser(
               userData.id,
-              new Set()
+              socket.id
+            );
+
+            socket.data.userId =
+              userData.id;
+
+            await db.updateUserStatus(
+              userData.id,
+              'online'
+            );
+
+            io.emit(
+              'user-presence-change',
+              {
+                userId: userData.id,
+                status: 'online',
+                name: userData.name,
+              }
+            );
+
+            console.log(
+              `[Socket.IO] Registered ${userData.name} (${socket.id})`
+            );
+          } catch (error) {
+            console.error(
+              '[Socket.IO] Failed to register user:',
+              error
             );
           }
-
-          userSocketMap
-            .get(userData.id)!
-            .add(socket.id);
-
-          await db.updateUserStatus(
-            userData.id,
-            'online'
-          );
-
-          io.emit(
-            'user-presence-change',
-            {
-              userId: userData.id,
-              status: 'online',
-              name: userData.name,
-            }
-          );
-
-          console.log(
-            `[Socket.IO] Registered ${userData.name} (${socket.id})`
-          );
         }
       );
 
@@ -174,6 +195,10 @@ export function setupSocketSignaling(
             roomId,
             user,
           } = data;
+
+          if (!roomId || !user?.id) {
+            return;
+          }
 
           const existingSocketUser =
             connectedSockets.get(
@@ -324,29 +349,36 @@ export function setupSocketSignaling(
         'offer',
         (payload: {
           targetSocketId: string;
-          callerSocketId: string;
-          callerUser: any;
+          callerSocketId?: string;
+          callerUser?: any;
           sdp: any;
           isAudioOnly?: boolean;
         }) => {
           if (
-            !payload.targetSocketId
+            !payload.targetSocketId ||
+            !payload.sdp
           ) {
             return;
           }
 
           io.to(
             payload.targetSocketId
-          ).emit('offer', {
-            sdp:
-              payload.sdp,
-            callerSocketId:
-              socket.id,
-            callerUser:
-              payload.callerUser,
-            isAudioOnly:
-              payload.isAudioOnly,
-          });
+          ).emit(
+            'offer',
+            {
+              sdp:
+                payload.sdp,
+
+              callerSocketId:
+                socket.id,
+
+              callerUser:
+                payload.callerUser,
+
+              isAudioOnly:
+                payload.isAudioOnly,
+            }
+          );
         }
       );
 
@@ -358,23 +390,28 @@ export function setupSocketSignaling(
         'answer',
         (payload: {
           targetSocketId: string;
-          answererSocketId: string;
+          answererSocketId?: string;
           sdp: any;
         }) => {
           if (
-            !payload.targetSocketId
+            !payload.targetSocketId ||
+            !payload.sdp
           ) {
             return;
           }
 
           io.to(
             payload.targetSocketId
-          ).emit('answer', {
-            sdp:
-              payload.sdp,
-            answererSocketId:
-              socket.id,
-          });
+          ).emit(
+            'answer',
+            {
+              sdp:
+                payload.sdp,
+
+              answererSocketId:
+                socket.id,
+            }
+          );
         }
       );
 
@@ -402,6 +439,7 @@ export function setupSocketSignaling(
             {
               candidate:
                 payload.candidate,
+
               fromSocketId:
                 socket.id,
             }
@@ -432,6 +470,7 @@ export function setupSocketSignaling(
               {
                 socketId:
                   socket.id,
+
                 ...payload,
               }
             );
@@ -446,12 +485,15 @@ export function setupSocketSignaling(
         'call-user',
         (payload: {
           targetUserId: string;
+
           caller: {
             id: string;
             name: string;
             avatarUrl?: string;
           };
+
           roomId: string;
+
           type:
             | 'VOICE'
             | 'VIDEO';
@@ -462,6 +504,14 @@ export function setupSocketSignaling(
             roomId,
             type,
           } = payload;
+
+          if (
+            !targetUserId ||
+            !caller?.id ||
+            !roomId
+          ) {
+            return;
+          }
 
           // ----------------------------------------------------
           // Caller already in a call
@@ -537,15 +587,14 @@ export function setupSocketSignaling(
           }
 
           // ----------------------------------------------------
-          // IMPORTANT:
           // Send to ONE target socket only.
-          // This prevents the same user from answering
-          // the same call from multiple browser tabs.
+          // Prevents multiple tabs from answering the
+          // same incoming call.
           // ----------------------------------------------------
 
           const targetSocketId =
-            targetSockets.values().next()
-              .value as
+            targetSockets.values()
+              .next().value as
               | string
               | undefined;
 
@@ -563,8 +612,7 @@ export function setupSocketSignaling(
           }
 
           // ----------------------------------------------------
-          // Reserve caller so they cannot start another call
-          // while waiting for this one.
+          // Reserve caller while ringing
           // ----------------------------------------------------
 
           activeCalls.set(
@@ -576,12 +624,17 @@ export function setupSocketSignaling(
             roomId,
             {
               roomId,
+
               callerSocketId:
                 socket.id,
+
               callerUserId:
                 caller.id,
+
               targetSocketId,
+
               targetUserId,
+
               createdAt:
                 Date.now(),
             }
@@ -620,8 +673,10 @@ export function setupSocketSignaling(
               payload.roomId
             );
 
-          // If this call is no longer pending,
-          // don't process it again.
+          // ----------------------------------------------------
+          // Call is no longer pending
+          // ----------------------------------------------------
+
           if (!pending) {
             console.warn(
               `[Socket.IO] No pending call found for room ${payload.roomId}`
@@ -630,7 +685,10 @@ export function setupSocketSignaling(
             return;
           }
 
-          // Only the intended target socket may respond.
+          // ----------------------------------------------------
+          // Only intended target may respond
+          // ----------------------------------------------------
+
           if (
             pending.targetSocketId !==
             socket.id
@@ -661,8 +719,10 @@ export function setupSocketSignaling(
               'call-response',
               {
                 accepted: false,
+
                 roomId:
                   payload.roomId,
+
                 responderId:
                   pending.targetUserId,
               }
@@ -676,7 +736,7 @@ export function setupSocketSignaling(
           }
 
           // ----------------------------------------------------
-          // Target became busy while call was ringing
+          // Target became busy while ringing
           // ----------------------------------------------------
 
           if (
@@ -698,8 +758,10 @@ export function setupSocketSignaling(
               'call-response',
               {
                 accepted: false,
+
                 roomId:
                   payload.roomId,
+
                 responderId:
                   pending.targetUserId,
               }
@@ -726,16 +788,17 @@ export function setupSocketSignaling(
             payload.roomId
           );
 
-          // Send response ONLY to the caller socket
-          // that initiated this call.
+          // Send response only to original caller
           io.to(
             pending.callerSocketId
           ).emit(
             'call-response',
             {
               accepted: true,
+
               roomId:
                 payload.roomId,
+
               responderId:
                 pending.targetUserId,
             }
@@ -754,6 +817,10 @@ export function setupSocketSignaling(
       socket.on(
         'join-channel',
         (channelId: string) => {
+          if (!channelId) {
+            return;
+          }
+
           socket.join(
             `channel:${channelId}`
           );
@@ -763,6 +830,10 @@ export function setupSocketSignaling(
       socket.on(
         'leave-channel',
         (channelId: string) => {
+          if (!channelId) {
+            return;
+          }
+
           socket.leave(
             `channel:${channelId}`
           );
@@ -783,71 +854,83 @@ export function setupSocketSignaling(
           recipientId?: string;
           workspaceId?: string;
         }) => {
-          const savedMsg =
-            await db.saveMessage({
-              content:
-                data.content,
-              senderId:
-                data.senderId,
-              senderName:
-                data.senderName,
-              channelId:
-                data.channelId,
-              recipientId:
-                data.recipientId,
-              workspaceId:
-                data.workspaceId,
-            });
+          try {
+            const savedMsg =
+              await db.saveMessage({
+                content:
+                  data.content,
 
-          if (data.channelId) {
-            io.to(
-              `channel:${data.channelId}`
-            ).emit(
-              'new-message',
-              savedMsg
-            );
-          } else if (
-            data.recipientId
-          ) {
-            const recipientSockets =
-              userSocketMap.get(
-                data.recipientId
+                senderId:
+                  data.senderId,
+
+                senderName:
+                  data.senderName,
+
+                channelId:
+                  data.channelId,
+
+                recipientId:
+                  data.recipientId,
+
+                workspaceId:
+                  data.workspaceId,
+              });
+
+            if (data.channelId) {
+              io.to(
+                `channel:${data.channelId}`
+              ).emit(
+                'new-message',
+                savedMsg
               );
-
-            if (
-              recipientSockets &&
-              recipientSockets.size > 0
+            } else if (
+              data.recipientId
             ) {
-              recipientSockets.forEach(
-                (socketId) => {
-                  io.to(
-                    socketId
-                  ).emit(
-                    'new-message',
-                    savedMsg
-                  );
-                }
-              );
-            }
+              const recipientSockets =
+                userSocketMap.get(
+                  data.recipientId
+                );
 
-            // Echo to sender's other sockets.
-            const senderSockets =
-              userSocketMap.get(
-                data.senderId
-              );
+              if (
+                recipientSockets &&
+                recipientSockets.size > 0
+              ) {
+                recipientSockets.forEach(
+                  (socketId) => {
+                    io.to(
+                      socketId
+                    ).emit(
+                      'new-message',
+                      savedMsg
+                    );
+                  }
+                );
+              }
 
-            if (senderSockets) {
-              senderSockets.forEach(
-                (socketId) => {
-                  io.to(
-                    socketId
-                  ).emit(
-                    'new-message',
-                    savedMsg
-                  );
-                }
-              );
+              // Echo to sender's other sockets
+              const senderSockets =
+                userSocketMap.get(
+                  data.senderId
+                );
+
+              if (senderSockets) {
+                senderSockets.forEach(
+                  (socketId) => {
+                    io.to(
+                      socketId
+                    ).emit(
+                      'new-message',
+                      savedMsg
+                    );
+                  }
+                );
+              }
             }
+          } catch (error) {
+            console.error(
+              '[Socket.IO] Failed to send message:',
+              error
+            );
           }
         }
       );
@@ -877,14 +960,16 @@ export function setupSocketSignaling(
               {
                 socketId:
                   socket.id,
+
                 userId:
                   user.userId,
+
                 name:
                   user.name,
               }
             );
 
-          // Release active call state.
+          // Release active call state
           if (
             activeCalls.get(
               user.userId
@@ -895,7 +980,7 @@ export function setupSocketSignaling(
             );
           }
 
-          // Remove pending call if this room belongs to it.
+          // Remove pending call if this room belongs to it
           const pending =
             pendingCalls.get(
               roomId
@@ -927,8 +1012,9 @@ export function setupSocketSignaling(
             }
           }
 
-          // Clear room from connected socket.
-          user.roomId = undefined;
+          // Clear room from connected socket
+          user.roomId =
+            undefined;
 
           connectedSockets.set(
             socket.id,
@@ -948,168 +1034,186 @@ export function setupSocketSignaling(
       socket.on(
         'disconnect',
         async () => {
-          const user =
-            connectedSockets.get(
-              socket.id
-            );
-
-          if (user) {
-            // -----------------------------------------------
-            // Tell room peers
-            // -----------------------------------------------
-
-            if (user.roomId) {
-              socket
-                .to(user.roomId)
-                .emit(
-                  'user-left-room',
-                  {
-                    socketId:
-                      socket.id,
-                    userId:
-                      user.userId,
-                    name:
-                      user.name,
-                  }
-                );
-
-              if (
-                activeCalls.get(
-                  user.userId
-                ) === user.roomId
-              ) {
-                activeCalls.delete(
-                  user.userId
-                );
-              }
-
-              const pending =
-                pendingCalls.get(
-                  user.roomId
-                );
-
-              if (pending) {
-                pendingCalls.delete(
-                  user.roomId
-                );
-
-                if (
-                  activeCalls.get(
-                    pending.callerUserId
-                  ) ===
-                  user.roomId
-                ) {
-                  activeCalls.delete(
-                    pending.callerUserId
-                  );
-                }
-
-                if (
-                  activeCalls.get(
-                    pending.targetUserId
-                  ) ===
-                  user.roomId
-                ) {
-                  activeCalls.delete(
-                    pending.targetUserId
-                  );
-                }
-              }
-            }
-
-            // -----------------------------------------------
-            // Clean pending calls involving this socket
-            // -----------------------------------------------
-
-            for (const [
-              roomId,
-              pending,
-            ] of pendingCalls.entries()) {
-              if (
-                pending.callerSocketId ===
-                  socket.id ||
-                pending.targetSocketId ===
-                  socket.id
-              ) {
-                pendingCalls.delete(
-                  roomId
-                );
-
-                if (
-                  activeCalls.get(
-                    pending.callerUserId
-                  ) === roomId
-                ) {
-                  activeCalls.delete(
-                    pending.callerUserId
-                  );
-                }
-
-                if (
-                  activeCalls.get(
-                    pending.targetUserId
-                  ) === roomId
-                ) {
-                  activeCalls.delete(
-                    pending.targetUserId
-                  );
-                }
-              }
-            }
-
-            // -----------------------------------------------
-            // Remove socket from user map
-            // -----------------------------------------------
-
-            const userSockets =
-              userSocketMap.get(
-                user.userId
-              );
-
-            if (userSockets) {
-              userSockets.delete(
+          try {
+            const user =
+              connectedSockets.get(
                 socket.id
               );
 
-              if (
-                userSockets.size ===
-                0
-              ) {
-                userSocketMap.delete(
-                  user.userId
-                );
+            if (user) {
+              // -----------------------------------------------
+              // Tell room peers
+              // -----------------------------------------------
 
-                activeCalls.delete(
-                  user.userId
-                );
+              if (user.roomId) {
+                socket
+                  .to(user.roomId)
+                  .emit(
+                    'user-left-room',
+                    {
+                      socketId:
+                        socket.id,
 
-                await db.updateUserStatus(
-                  user.userId,
-                  'offline'
-                );
+                      userId:
+                        user.userId,
 
-                io.emit(
-                  'user-presence-change',
-                  {
-                    userId:
-                      user.userId,
-                    status:
-                      'offline',
-                    name:
-                      user.name,
+                      name:
+                        user.name,
+                    }
+                  );
+
+                if (
+                  activeCalls.get(
+                    user.userId
+                  ) ===
+                  user.roomId
+                ) {
+                  activeCalls.delete(
+                    user.userId
+                  );
+                }
+
+                const pending =
+                  pendingCalls.get(
+                    user.roomId
+                  );
+
+                if (pending) {
+                  pendingCalls.delete(
+                    user.roomId
+                  );
+
+                  if (
+                    activeCalls.get(
+                      pending.callerUserId
+                    ) ===
+                    user.roomId
+                  ) {
+                    activeCalls.delete(
+                      pending.callerUserId
+                    );
                   }
-                );
+
+                  if (
+                    activeCalls.get(
+                      pending.targetUserId
+                    ) ===
+                    user.roomId
+                  ) {
+                    activeCalls.delete(
+                      pending.targetUserId
+                    );
+                  }
+                }
               }
+
+              // -----------------------------------------------
+              // Clean pending calls involving this socket
+              // -----------------------------------------------
+
+              for (
+                const [
+                  roomId,
+                  pending,
+                ] of pendingCalls.entries()
+              ) {
+                if (
+                  pending.callerSocketId ===
+                    socket.id ||
+                  pending.targetSocketId ===
+                    socket.id
+                ) {
+                  pendingCalls.delete(
+                    roomId
+                  );
+
+                  if (
+                    activeCalls.get(
+                      pending.callerUserId
+                    ) === roomId
+                  ) {
+                    activeCalls.delete(
+                      pending.callerUserId
+                    );
+                  }
+
+                  if (
+                    activeCalls.get(
+                      pending.targetUserId
+                    ) === roomId
+                  ) {
+                    activeCalls.delete(
+                      pending.targetUserId
+                    );
+                  }
+                }
+              }
+
+              // -----------------------------------------------
+              // Remove socket from user map
+              // -----------------------------------------------
+
+              const userSockets =
+                userSocketMap.get(
+                  user.userId
+                );
+
+              if (userSockets) {
+                userSockets.delete(
+                  socket.id
+                );
+
+                if (
+                  userSockets.size ===
+                  0
+                ) {
+                  userSocketMap.delete(
+                    user.userId
+                  );
+
+                  activeCalls.delete(
+                    user.userId
+                  );
+
+                  callRegistry.unregisterUser(
+                    user.userId
+                  );
+
+                  await db.updateUserStatus(
+                    user.userId,
+                    'offline'
+                  );
+
+                  io.emit(
+                    'user-presence-change',
+                    {
+                      userId:
+                        user.userId,
+
+                      status:
+                        'offline',
+
+                      name:
+                        user.name,
+                    }
+                  );
+                }
+              }
+
+              connectedSockets.delete(
+                socket.id
+              );
             }
 
-            connectedSockets.delete(
-              socket.id
+            console.log(
+              `[Socket.IO] Client disconnected: ${socket.id}`
+            );
+          } catch (error) {
+            console.error(
+              '[Socket.IO] Disconnect cleanup failed:',
+              error
             );
           }
-
-          console.log(
-            `[Socket.IO] Client disconnected: ${socket.id}`
-          );
         }
       );
     }

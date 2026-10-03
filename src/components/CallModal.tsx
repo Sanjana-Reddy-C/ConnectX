@@ -50,8 +50,8 @@ export const CallModal: React.FC<
   initialType = 'VIDEO',
   onEndCall,
 }) => {
-  const [manager, setManager] =
-    useState<WebRtcManager | null>(null);
+  const managerRef =
+  useRef<WebRtcManager | null>(null);
 
   const [localStream, setLocalStream] =
     useState<MediaStream | null>(null);
@@ -251,94 +251,140 @@ export const CallModal: React.FC<
   ]);
 
   /*
-   * Initialize WebRTC
-   */
-  useEffect(() => {
-    const rtcManager =
-      new WebRtcManager(
-        socket,
-        currentUser
+ * Initialize WebRTC
+ *
+ * Keep exactly one WebRtcManager instance for
+ * the lifetime of this call.
+ */
+useEffect(() => {
+  let isMounted = true;
+
+  const rtcManager =
+    new WebRtcManager(
+      socket,
+      currentUser
+    );
+
+  managerRef.current =
+    rtcManager;
+
+  rtcManager.onParticipantsUpdate =
+    (updatedParticipants) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setParticipants([
+        ...updatedParticipants,
+      ]);
+    };
+
+  rtcManager.onConnectionStateChange =
+    (state) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setConnectionState(state);
+    };
+
+  rtcManager.onScreenShareStateChange =
+    (
+      sharing,
+      stream
+    ) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsScreenSharing(
+        sharing
       );
 
-    setManager(rtcManager);
-
-    rtcManager.onParticipantsUpdate =
-      (updatedParticipants) => {
-        setParticipants([
-          ...updatedParticipants,
-        ]);
-      };
-
-    rtcManager.onConnectionStateChange =
-      (state) => {
-        setConnectionState(state);
-      };
-
-    rtcManager.onScreenShareStateChange =
-      (
-        sharing,
+      setScreenShareStream(
         stream
-      ) => {
-        setIsScreenSharing(
-          sharing
-        );
-
-        setScreenShareStream(
-          stream
-        );
-      };
-
-    rtcManager
-      .initialize(
-        roomId,
-        initialType === 'VOICE'
-      )
-      .then((stream) => {
-        setLocalStream(stream);
-      })
-      .catch((error) => {
-        console.error(
-          'Failed to initialize WebRTC:',
-          error
-        );
-      });
-
-    const timer =
-      setInterval(() => {
-        setCallDuration(
-          (previous) =>
-            previous + 1
-        );
-      }, 1000);
-
-    return () => {
-      clearInterval(timer);
-
-      rtcManager.leave();
+      );
     };
-  }, [
-    roomId,
-    socket,
-    currentUser,
-    initialType,
-  ]);
+
+  rtcManager
+    .initialize(
+      roomId,
+      initialType === 'VOICE'
+    )
+    .then((stream) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setLocalStream(stream);
+    })
+    .catch((error) => {
+      if (!isMounted) {
+        return;
+      }
+
+      console.error(
+        '[CallModal] Failed to initialize WebRTC:',
+        error
+      );
+    });
+
+  const timer =
+    setInterval(() => {
+      if (!isMounted) {
+        return;
+      }
+
+      setCallDuration(
+        (previous) =>
+          previous + 1
+      );
+    }, 1000);
+
+  return () => {
+    isMounted = false;
+
+    clearInterval(timer);
+
+    /*
+     * Only clean up the manager that belongs
+     * to this CallModal instance.
+     */
+    if (
+      managerRef.current ===
+      rtcManager
+    ) {
+      rtcManager.leave();
+
+      managerRef.current =
+        null;
+    }
+  };
+}, [
+  roomId,
+  socket,
+  currentUser.id,
+  currentUser.name,
+  currentUser.avatarUrl,
+  initialType,
+]);
 
   /*
    * Local camera preview
    */
   useEffect(() => {
-    if (
-      localVideoRef.current &&
-      localStream
-    ) {
-      localVideoRef.current.srcObject =
-        localStream;
+  if (
+    localVideoRef.current &&
+    localStream
+  ) {
+    localVideoRef.current.srcObject =
+      localStream;
 
-      localVideoRef.current
-        .play()
-        .catch(() => {});
-    }
-  }, [localStream]);
+    localVideoRef.current
+      .play()
+      .catch(() => {});
+  }
+}, [localStream, isScreenSharing]);
 
   /*
    * Screen-share preview
@@ -374,36 +420,51 @@ export const CallModal: React.FC<
   };
 
   const handleToggleMute = () => {
-    if (!manager) return;
+  const manager =
+    managerRef.current;
 
-    const nextState =
-      !isMuted;
+  if (!manager) {
+    return;
+  }
 
-    manager.toggleMute(
-      nextState
-    );
+  const nextState =
+    !isMuted;
 
-    setIsMuted(nextState);
-  };
+  manager.toggleMute(
+    nextState
+  );
+
+  setIsMuted(nextState);
+};
 
   const handleToggleCamera = () => {
-    if (!manager) return;
+  const manager =
+    managerRef.current;
 
-    const nextState =
-      !isCameraOff;
+  if (!manager) {
+    return;
+  }
 
-    manager.toggleCamera(
-      nextState
-    );
+  const nextState =
+    !isCameraOff;
 
-    setIsCameraOff(
-      nextState
-    );
-  };
+  manager.toggleCamera(
+    nextState
+  );
+
+  setIsCameraOff(
+    nextState
+  );
+};
 
   const handleToggleScreenShare =
-    async () => {
-      if (!manager) return;
+  async () => {
+    const manager =
+      managerRef.current;
+
+    if (!manager) {
+      return;
+    }
 
       if (isScreenSharing) {
         manager.stopScreenShare();
@@ -434,10 +495,16 @@ export const CallModal: React.FC<
     };
 
   const handleLeaveCall =
-    async () => {
-      if (manager) {
-        manager.leave();
-      }
+  async () => {
+    const manager =
+      managerRef.current;
+
+    if (manager) {
+      manager.leave();
+
+      managerRef.current =
+        null;
+    }
 
       try {
         await api.logCall({
@@ -980,13 +1047,76 @@ const RemoteVideoTile: React.FC<{
     setRemoteVolume,
   ] = useState(0);
 
+  // ==========================================================
+  // ATTACH REMOTE STREAM
+  // ==========================================================
+
   useEffect(() => {
-    if (!participant.stream)
+    const stream =
+      participant.stream;
+
+    if (!stream) {
       return;
+    }
+
+    console.log(
+      '[RemoteVideoTile] Attaching remote stream:',
+      {
+        socketId:
+          participant.socketId,
+
+        videoTracks:
+          stream.getVideoTracks()
+            .map((track) => ({
+              id: track.id,
+              enabled:
+                track.enabled,
+              readyState:
+                track.readyState,
+            })),
+
+        audioTracks:
+          stream.getAudioTracks()
+            .map((track) => ({
+              id: track.id,
+              enabled:
+                track.enabled,
+              readyState:
+                track.readyState,
+            })),
+      }
+    );
+
+    // --------------------------------------------------------
+    // VIDEO
+    // --------------------------------------------------------
+
+    if (videoRef.current) {
+      videoRef.current.srcObject =
+        stream;
+
+      videoRef.current
+        .play()
+        .then(() => {
+          console.log(
+            '[RemoteVideoTile] Remote video playing'
+          );
+        })
+        .catch((error) => {
+          console.warn(
+            '[RemoteVideoTile] Remote video autoplay failed:',
+            error
+          );
+        });
+    }
+
+    // --------------------------------------------------------
+    // AUDIO
+    // --------------------------------------------------------
 
     if (audioRef.current) {
       audioRef.current.srcObject =
-        participant.stream;
+        stream;
 
       audioRef.current
         .play()
@@ -1001,22 +1131,15 @@ const RemoteVideoTile: React.FC<{
           );
         });
     }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject =
-        participant.stream;
-
-      videoRef.current
-        .play()
-        .catch(() => {});
-    }
   }, [
     participant.stream,
+    participant.socketId,
   ]);
 
-  /*
-   * Remote audio activity
-   */
+  // ==========================================================
+  // REMOTE AUDIO ACTIVITY
+  // ==========================================================
+
   useEffect(() => {
     if (
       !participant.stream ||
@@ -1027,9 +1150,13 @@ const RemoteVideoTile: React.FC<{
     }
 
     const audioTrack =
-      participant.stream.getAudioTracks()[0];
+      participant.stream
+        .getAudioTracks()[0];
 
-    if (!audioTrack) return;
+    if (!audioTrack) {
+      setRemoteVolume(0);
+      return;
+    }
 
     let audioCtx:
       | AudioContext
@@ -1080,7 +1207,9 @@ const RemoteVideoTile: React.FC<{
           );
 
         const loop = () => {
-          if (!analyser) return;
+          if (!analyser) {
+            return;
+          }
 
           analyser.getByteFrequencyData(
             dataArray
@@ -1097,25 +1226,34 @@ const RemoteVideoTile: React.FC<{
           }
 
           const avg =
-            sum / dataArray.length;
+            dataArray.length > 0
+              ? sum /
+                dataArray.length
+              : 0;
 
           setRemoteVolume(
             Math.min(
               100,
               Math.round(
-                (avg / 128) * 100
+                (avg / 128) *
+                  100
               )
             )
           );
 
           animId =
-            requestAnimationFrame(loop);
+            requestAnimationFrame(
+              loop
+            );
         };
 
         loop();
       }
-    } catch {
-      // Ignore visualizer errors.
+    } catch (error) {
+      console.warn(
+        '[RemoteVideoTile] Audio visualizer error:',
+        error
+      );
     }
 
     return () => {
@@ -1137,10 +1275,15 @@ const RemoteVideoTile: React.FC<{
     participant.isMuted,
   ]);
 
+  // ==========================================================
+  // MANUAL AUDIO
+  // ==========================================================
+
   const handleManualUnmute =
     () => {
-      if (!audioRef.current)
+      if (!audioRef.current) {
         return;
+      }
 
       audioRef.current
         .play()
@@ -1157,6 +1300,28 @@ const RemoteVideoTile: React.FC<{
         });
     };
 
+  // ==========================================================
+  // ACTUAL VIDEO TRACK
+  // ==========================================================
+
+  const hasVideoTrack =
+    participant.stream
+      ?.getVideoTracks()
+      .some(
+        (track) =>
+          track.readyState ===
+          'live'
+      ) ?? false;
+
+  const showVideo =
+    hasVideoTrack &&
+    participant.isCameraOff !==
+      true;
+
+  // ==========================================================
+  // UI
+  // ==========================================================
+
   return (
     <div
       className={`relative w-full ${
@@ -1165,6 +1330,9 @@ const RemoteVideoTile: React.FC<{
           : 'h-full min-h-[260px] max-h-[700px]'
       } bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-xl flex items-center justify-center`}
     >
+      {/* ------------------------------------------------------
+          REMOTE AUDIO
+      ------------------------------------------------------ */}
 
       <audio
         ref={audioRef}
@@ -1172,19 +1340,25 @@ const RemoteVideoTile: React.FC<{
         playsInline
       />
 
-      {!participant.isCameraOff &&
-      participant.stream.getVideoTracks()
-        .length ? (
+      {/* ------------------------------------------------------
+          REMOTE VIDEO
+      ------------------------------------------------------ */}
+
+      {showVideo ? (
         <video
           ref={videoRef}
           autoPlay
-          muted
           playsInline
+          muted
           className="w-full h-full object-cover"
+          onLoadedMetadata={() => {
+            videoRef.current
+              ?.play()
+              .catch(() => {});
+          }}
         />
       ) : (
         <div className="flex flex-col items-center justify-center">
-
           <img
             src={
               participant.user
@@ -1209,9 +1383,12 @@ const RemoteVideoTile: React.FC<{
         </div>
       )}
 
+      {/* ------------------------------------------------------
+          AUDIO AUTOPLAY WARNING
+      ------------------------------------------------------ */}
+
       {autoplayBlocked && (
         <div className="absolute inset-x-3 top-3 z-30 p-2.5 rounded-xl bg-amber-950/90 border border-amber-600 text-amber-200 text-xs flex items-center justify-between shadow-lg">
-
           <div className="flex items-center gap-1.5">
             <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
 
@@ -1231,8 +1408,11 @@ const RemoteVideoTile: React.FC<{
         </div>
       )}
 
-      <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/85 backdrop-blur border border-slate-700/60 text-xs font-medium text-white flex items-center gap-2">
+      {/* ------------------------------------------------------
+          PARTICIPANT LABEL
+      ------------------------------------------------------ */}
 
+      <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-lg bg-slate-900/85 backdrop-blur border border-slate-700/60 text-xs font-medium text-white flex items-center gap-2">
         <span>
           {participant.user.name}
         </span>
@@ -1241,9 +1421,7 @@ const RemoteVideoTile: React.FC<{
           <MicOff className="w-3.5 h-3.5 text-rose-400" />
         ) : (
           <div className="flex items-center gap-1">
-
             <div className="flex items-center gap-0.5">
-
               <span
                 className="w-1 bg-cyan-400 rounded-full transition-all duration-75"
                 style={{
