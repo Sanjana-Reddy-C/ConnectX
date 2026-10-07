@@ -7,7 +7,7 @@
       "passwordHash": "$2b$10$nswS2HUpkmOtnb2Qj.3yo.EDgCRnDCYCelHHbjJCBX64aiXZGrmi.",
       "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Elena%20Rostova%20(London%2C%20UK)",
       "status": "online",
-      "lastSeen": "2026-10-03T05:35:37.264Z",
+      "lastSeen": "2026-10-07T06:33:47.365Z",
       "createdAt": "2026-09-17T07:06:51.502Z"
     },
     {
@@ -26,8 +26,8 @@
       "name": "Kenji Sato (Tokyo, JP)",
       "passwordHash": "$2b$10$7v0xFKtFHAGkC3rUp3NzKu6cpmMUwnbGYdIkDn5S3B3dpExl4BtL.",
       "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Kenji%20Sato%20(Tokyo%2C%20JP)",
-      "status": "offline",
-      "lastSeen": "2026-10-01T14:42:43.438Z",
+      "status": "online",
+      "lastSeen": "2026-10-06T16:25:30.794Z",
       "createdAt": "2026-09-22T06:34:25.339Z"
     },
     {
@@ -38,7 +38,7 @@
       "passwordHash": "$2b$10$2lPCT7Dfr/i.mWMLj8ewVeDSFHZCFkiO7whIBdR/LQgybTos853l.",
       "avatarUrl": "https://api.dicebear.com/7.x/initials/svg?seed=Alex",
       "status": "online",
-      "lastSeen": "2026-10-03T05:32:36.187Z",
+      "lastSeen": "2026-10-07T06:33:44.560Z",
       "createdAt": "2026-09-22T08:24:51.227Z"
     }
   ],
@@ -127,6 +127,87 @@
     }
   ],
   "callLogs": [
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-p2p-user-1790065491227-69v7sq-usr-1789628811502-cfd8",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 8,
+      "startedAt": "2026-10-07T06:34:02.803Z",
+      "participants": [
+        "Alex"
+      ],
+      "id": "call-1791354842803-55qx"
+    },
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-p2p-user-1790065491227-69v7sq-usr-1789628811502-cfd8",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 10,
+      "startedAt": "2026-10-07T06:34:00.896Z",
+      "participants": [
+        "Elena Rostova (London, UK)",
+        "Alex"
+      ],
+      "id": "call-1791354840896-28d4"
+    },
+    {
+      "initiatorId": "user-1790065491227-69v7sq",
+      "initiatorName": "Alex",
+      "roomId": "cx-p2p-user-1790065491227-69v7sq-usr-1789628811502-cfd8",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 19,
+      "startedAt": "2026-10-07T06:11:00.498Z",
+      "participants": [
+        "Alex"
+      ],
+      "id": "call-1791353460498-hqch"
+    },
+    {
+      "initiatorId": "user-1790065491227-69v7sq",
+      "initiatorName": "Alex",
+      "roomId": "cx-p2p-user-1790065491227-69v7sq-usr-1789628811502-cfd8",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 14,
+      "startedAt": "2026-10-07T06:10:58.284Z",
+      "participants": [
+        "Elena Rostova (London, UK)",
+        "Alex"
+      ],
+      "id": "call-1791353458285-vsnn"
+    },
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058865338-icbk",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 24,
+      "startedAt": "2026-10-06T16:26:03.949Z",
+      "participants": [
+        "Elena Rostova (London, UK)"
+      ],
+      "id": "call-1791303963949-ujm9"
+    },
+    {
+      "initiatorId": "usr-1789628811502-cfd8",
+      "initiatorName": "Elena Rostova (London, UK)",
+      "roomId": "cx-p2p-usr-1789628811502-cfd8-usr-1790058865338-icbk",
+      "type": "VIDEO",
+      "status": "COMPLETED",
+      "duration": 18,
+      "startedAt": "2026-10-06T16:26:00.916Z",
+      "participants": [
+        "Kenji Sato (Tokyo, JP)",
+        "Elena Rostova (London, UK)"
+      ],
+      "id": "call-1791303960916-tbw6"
+    },
     {
       "initiatorId": "usr-1789628811502-cfd8",
       "initiatorName": "Elena Rostova (London, UK)",

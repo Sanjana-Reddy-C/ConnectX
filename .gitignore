@@ -1,8 +1,41 @@
+# Dependencies
 node_modules/
+
+# Build output
 build/
 dist/
 coverage/
-.DS_Store
-*.log
-.env*
+*.tsbuildinfo
+
+# Environment variables (keep the example files)
+.env
+.env.*
 !.env.example
+
+# Local JSON data store (contains user data and password hashes)
+data-store.json
+
+# Generated Prisma client
+src/generated/prisma/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Platform / tooling folders
+.vercel/
+.render/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Scratch files
+file1.txt
+
+# Optional: AI tool skill folders inside server/ (uncomment to ignore)
+# server/.claude/
+# server/.windsurf/
+# server/skills-lock.json
