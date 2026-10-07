@@ -1,11 +1,16 @@
 import dotenv from "dotenv";
+dotenv.config();
+
 import http from "http";
 import { Server } from "socket.io";
 import app from "./app";
 
-dotenv.config();
-
 const PORT = process.env.PORT || 3000;
+
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+].filter(Boolean) as string[];
 
 // Create HTTP server
 const httpServer = http.createServer(app);
@@ -13,7 +18,7 @@ const httpServer = http.createServer(app);
 // Create Socket.IO server
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
@@ -40,9 +45,7 @@ io.on("connection", (socket) => {
     room.add(socket.id);
     socket.join(roomId);
 
-    console.log(
-      `📹 ${socket.id} joined video room ${roomId}`
-    );
+    console.log(`📹 ${socket.id} joined video room ${roomId}`);
 
     // Tell existing participant that another user joined
     socket.to(roomId).emit("peer-joined", {
@@ -57,37 +60,28 @@ io.on("connection", (socket) => {
   });
 
   // WebRTC Offer
-  socket.on(
-    "offer",
-    ({ target, offer }) => {
-      io.to(target).emit("offer", {
-        offer,
-        sender: socket.id,
-      });
-    }
-  );
+  socket.on("offer", ({ target, offer }) => {
+    io.to(target).emit("offer", {
+      offer,
+      sender: socket.id,
+    });
+  });
 
   // WebRTC Answer
-  socket.on(
-    "answer",
-    ({ target, answer }) => {
-      io.to(target).emit("answer", {
-        answer,
-        sender: socket.id,
-      });
-    }
-  );
+  socket.on("answer", ({ target, answer }) => {
+    io.to(target).emit("answer", {
+      answer,
+      sender: socket.id,
+    });
+  });
 
   // ICE Candidate
-  socket.on(
-    "ice-candidate",
-    ({ target, candidate }) => {
-      io.to(target).emit("ice-candidate", {
-        candidate,
-        sender: socket.id,
-      });
-    }
-  );
+  socket.on("ice-candidate", ({ target, candidate }) => {
+    io.to(target).emit("ice-candidate", {
+      candidate,
+      sender: socket.id,
+    });
+  });
 
   socket.on("disconnect", () => {
     console.log(`🔌 Socket disconnected: ${socket.id}`);
@@ -107,7 +101,5 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(
-    `🚀 ConnectX server running on http://localhost:${PORT}`
-  );
+  console.log(` ConnectX server running on port ${PORT}`);
 });
